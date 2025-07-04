@@ -3,7 +3,7 @@
 set -e
 
 TARGET="/opt/Exegol-Session-Viewer"
-SCRIPT="exegolsessionsviewer.py"
+SCRIPT="esw-luncher.py"
 ALIAS="alias esw='python3 $TARGET/$SCRIPT'"
 
 echo "[+] Moving project to $TARGET..."
