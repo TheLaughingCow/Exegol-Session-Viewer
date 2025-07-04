@@ -11,6 +11,7 @@ from flask import Flask, render_template_string, request, send_file, send_from_d
 from glob import glob
 from datetime import datetime
 from collections import defaultdict
+import numpy as np
 
 venv_path = os.path.expanduser("~/.venv/exegol-replay")
 expected_python = os.path.join(venv_path, "bin", "python3")
@@ -30,7 +31,6 @@ ensure_venv()
 import moviepy.editor as mpy
 import pyte
 import tty2img
-import numpy as np
 
 app = Flask(__name__, static_folder='.')
 
@@ -125,7 +125,7 @@ def index():
       <td class="view-cell">
         <a class="view-link" href="/view?file={{ path }}">▶ View</a>
         <a class="download-link" href="/view?file={{ path }}&download=1">⬇ Download</a>
-        <a class="download-link" href="/processing?file={{ path }}">🎬 Download MP4</a>
+        <a class="download-link" href="/processing?file={{ path }}" onclick="alert('MP4 generation is experimental and may not work perfectly.');">🎬 Download MP4</a>
       </td>
     </tr>
     {% endfor %}
@@ -156,7 +156,7 @@ def view():
   <label>Start (s): <input id="start" type="number" step="0.1" style="width:80px;"></label>
   <label>End (s): <input id="end" type="number" step="0.1" style="width:80px;"></label>
   <button onclick="downloadExtract()">🎯 Download extract</button>
-  <a class="download-link" href="/processing?file={path}" target="_blank">🎬 Download MP4</a>
+  <a class="download-link" href="/processing?file={path}" target="_blank" onclick="alert('MP4 generation is experimental and may not work perfectly.');">🎬 Download MP4</a>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/asciinema-player@3.0.1/dist/bundle/asciinema-player.min.js"></script>
 <script>
@@ -239,7 +239,7 @@ def progress():
             with open(progress_path, "r") as f:
                 j = json.load(f)
             return jsonify(j)
-        except Exception as e:
+        except Exception:
             return jsonify({"progress": 0, "done": False, "text": "Waiting..."})
     return jsonify({"progress": 0, "done": False, "text": "Initializing..."})
 
@@ -304,13 +304,6 @@ def convert_to_cast(path):
                 continue
     tmp.close()
     return tmp.name
-
-def safe_color(color):
-    if color in ('#brightgreen', 'brightgreen'):
-        return 'lime'
-    if color.startswith("#") and len(color) not in (4, 7):
-        return "white"
-    return color
 
 def convert_cast_to_mp4_progress(cast_path, mp4_path, progress_path):
     try:
