@@ -26,8 +26,8 @@ It supports:
 ## Installation
 
 ```bash
-git clone https://github.com/yourname/exegol-replay.git
-cd exegol-replay
+git clone https://github.com/Frozenka/Exegol-Session-Viewer.git
+cd Exegol-Session-Viewer
 ./install.sh
 ```
 
