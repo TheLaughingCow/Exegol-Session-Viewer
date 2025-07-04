@@ -8,7 +8,7 @@ ALIAS="alias esw='python3 $TARGET/$SCRIPT'"
 
 echo "[+] Moving project to $TARGET..."
 sudo rm -rf "$TARGET"
-sudo cp -r . "$TARGET"
+sudo mv . "$TARGET"
 
 # Detect shell config file
 if [ -n "$ZSH_VERSION" ]; then
