@@ -7,7 +7,8 @@ import shutil
 import gzip
 import json
 import re
-from flask import Flask, render_template_string, request, send_file, send_from_directory
+import contextlib
+from flask import Flask, render_template_string, request, send_file, send_from_directory, abort
 from glob import glob
 from datetime import datetime
 from collections import defaultdict
@@ -26,6 +27,11 @@ if sys.executable != expected_python and not os.environ.get("IN_VENV"):
 app = Flask(__name__, static_folder='.')
 
 ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+@app.before_request
+def limit_remote_addr():
+    if request.remote_addr != "127.0.0.1":
+        abort(403)
 
 @app.route("/logo.png")
 def logo():
@@ -64,8 +70,7 @@ def index():
     grouped = defaultdict(list)
     for c, d, p in sorted(result, key=lambda x: (x[0], x[1]), reverse=True):
         grouped[c].append((d, p))
-    return render_template_string("""
-<!doctype html><html><head>
+    return render_template_string("""<!doctype html><html><head>
 <title>Exegol Sessions Viewer</title>
 <style>
   body { font-family: sans-serif; background: #111; color: #eee; padding: 20px; }
@@ -222,4 +227,7 @@ def convert_to_cast(path):
     return tmp.name
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5005)
+    print("[+] Exegol Session Viewer running on http://127.0.0.1:5005")
+    with open(os.devnull, 'w') as devnull:
+        with contextlib.redirect_stdout(devnull), contextlib.redirect_stderr(devnull):
+            app.run(host="127.0.0.1", port=5005, debug=False, use_reloader=False)
