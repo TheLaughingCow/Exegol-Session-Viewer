@@ -24,7 +24,11 @@ It supports:
 ---
 
 ## Installation
-
+Oneliner :
+```bash
+bash <(curl -sSL https://raw.githubusercontent.com/Frozenka/Exegol-Session-Viewer/refs/heads/main/install.sh)
+```
+Git :
 ```bash
 git clone https://github.com/Frozenka/Exegol-Session-Viewer.git
 cd Exegol-Session-Viewer
