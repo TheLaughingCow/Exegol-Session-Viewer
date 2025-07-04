@@ -1,37 +1,40 @@
 #!/usr/bin/env python3
 import os
 import sys
+import threading
 import subprocess
 import tempfile
-import shutil
 import gzip
 import json
 import re
-import contextlib
-from flask import Flask, render_template_string, request, send_file, send_from_directory, abort
+from flask import Flask, render_template_string, request, send_file, send_from_directory, jsonify
 from glob import glob
 from datetime import datetime
 from collections import defaultdict
 
 venv_path = os.path.expanduser("~/.venv/exegol-replay")
 expected_python = os.path.join(venv_path, "bin", "python3")
+required_pkgs = ["flask", "moviepy", "pyte", "numpy", "Pillow"]
 
-if sys.executable != expected_python and not os.environ.get("IN_VENV"):
-    if not os.path.exists(venv_path):
-        print("[+] Creating virtual environment for Exegol Replay...")
-        subprocess.check_call([sys.executable, "-m", "venv", venv_path])
-        subprocess.check_call([os.path.join(venv_path, "bin", "pip"), "install", "flask"])
-    os.environ["IN_VENV"] = "1"
-    os.execv(expected_python, [expected_python] + sys.argv)
+def ensure_venv():
+    if sys.executable != expected_python and not os.environ.get("IN_VENV"):
+        if not os.path.exists(venv_path):
+            subprocess.check_call([sys.executable, "-m", "venv", venv_path])
+        pip = os.path.join(venv_path, "bin", "pip")
+        subprocess.check_call([pip, "install", "--upgrade", "pip"])
+        subprocess.check_call([pip, "install"] + required_pkgs)
+        os.environ["IN_VENV"] = "1"
+        os.execv(expected_python, [expected_python] + sys.argv)
+ensure_venv()
+
+import moviepy.editor as mpy
+import pyte
+import tty2img
+import numpy as np
 
 app = Flask(__name__, static_folder='.')
 
 ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-
-@app.before_request
-def limit_remote_addr():
-    if request.remote_addr != "127.0.0.1":
-        abort(403)
 
 @app.route("/logo.png")
 def logo():
@@ -70,7 +73,8 @@ def index():
     grouped = defaultdict(list)
     for c, d, p in sorted(result, key=lambda x: (x[0], x[1]), reverse=True):
         grouped[c].append((d, p))
-    return render_template_string("""<!doctype html><html><head>
+    return render_template_string("""
+<!doctype html><html><head>
 <title>Exegol Sessions Viewer</title>
 <style>
   body { font-family: sans-serif; background: #111; color: #eee; padding: 20px; }
@@ -121,6 +125,7 @@ def index():
       <td class="view-cell">
         <a class="view-link" href="/view?file={{ path }}">▶ View</a>
         <a class="download-link" href="/view?file={{ path }}&download=1">⬇ Download</a>
+        <a class="download-link" href="/processing?file={{ path }}">🎬 Download MP4</a>
       </td>
     </tr>
     {% endfor %}
@@ -151,6 +156,7 @@ def view():
   <label>Start (s): <input id="start" type="number" step="0.1" style="width:80px;"></label>
   <label>End (s): <input id="end" type="number" step="0.1" style="width:80px;"></label>
   <button onclick="downloadExtract()">🎯 Download extract</button>
+  <a class="download-link" href="/processing?file={path}" target="_blank">🎬 Download MP4</a>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/asciinema-player@3.0.1/dist/bundle/asciinema-player.min.js"></script>
 <script>
@@ -170,6 +176,79 @@ function downloadExtract() {{
 </script>
 <footer style="margin-top:30px;font-size:0.9em;color:#777;">Made for <a href="https://exegol.com" target="_blank" style="color:#aaa;font-weight:bold;">Exegol</a> with ❤️</footer>
 </body></html>"""
+
+@app.route("/processing")
+def processing():
+    file = request.args.get("file")
+    cast_path = convert_to_cast(file)
+    mp4_path = cast_path.replace(".cast", ".mp4")
+    progress_path = mp4_path + ".progress"
+    if not (os.path.exists(mp4_path) or os.path.exists(progress_path)):
+        threading.Thread(target=convert_cast_to_mp4_progress, args=(cast_path, mp4_path, progress_path), daemon=True).start()
+    return render_template_string("""
+<html><head>
+<title>Generating MP4...</title>
+<style>
+  body { background: #111; color: #eee; font-family: sans-serif; text-align: center; }
+  .progress { width: 80%; max-width: 450px; background: #222; border-radius: 20px; margin: 40px auto; padding: 6px;}
+  .progress-bar { height: 32px; border-radius: 16px; width: 0; background: linear-gradient(90deg, #00eaff 0%, #00c3ff 100%); transition: width .3s; font-weight: bold; font-size: 1.2em; text-align: center; color: #222; }
+  .message { font-size: 1.2em; margin-top: 30px; }
+</style>
+</head><body>
+<div class="logo" style="margin:15px;"><a href="https://github.com/Frozenka/Exegol-Session-Viewer" target="_blank"><img src="/logo.png" style="height:80px;"></a></div>
+<div class="message">Generating MP4, please wait...<br>This may take several minutes for long sessions.<br></div>
+<div class="progress"><div class="progress-bar" id="bar"></div></div>
+<div id="progtxt" style="color:#4df;">Initializing...</div>
+<script>
+function poll() {
+  fetch('/progress?file={{ mp4_path }}')
+    .then(r => r.json())
+    .then(data => {
+      let bar = document.getElementById('bar');
+      let progtxt = document.getElementById('progtxt');
+      if(data.done) {
+        bar.style.width = "100%";
+        bar.innerText = "100%";
+        progtxt.innerText = "Download starting...";
+        setTimeout(function(){
+          window.location.href="/download_mp4?file={{ mp4_path }}";
+        }, 1000);
+      } else {
+        let p = Math.floor(data.progress * 100);
+        bar.style.width = p + "%";
+        bar.innerText = p + "%";
+        progtxt.innerText = data.text;
+        setTimeout(poll, 1500);
+      }
+    });
+}
+setTimeout(poll, 1000);
+</script>
+<footer style="margin-top:30px;font-size:0.9em;color:#777;">Made for <a href="https://exegol.com" target="_blank" style="color:#aaa;font-weight:bold;">Exegol</a> with ❤️</footer>
+</body></html>
+    """, mp4_path=mp4_path)
+
+@app.route("/progress")
+def progress():
+    file = request.args.get("file")
+    progress_path = file + ".progress"
+    if os.path.exists(file):
+        return jsonify({"progress": 1.0, "done": True, "text": "Done!"})
+    if os.path.exists(progress_path):
+        try:
+            with open(progress_path, "r") as f:
+                j = json.load(f)
+            return jsonify(j)
+        except Exception as e:
+            return jsonify({"progress": 0, "done": False, "text": "Waiting..."})
+    return jsonify({"progress": 0, "done": False, "text": "Initializing..."})
+
+@app.route("/download_mp4")
+def download_mp4():
+    file = request.args.get("file")
+    if not os.path.exists(file):
+        return "File not ready.", 404
+    return send_file(file, as_attachment=True, download_name=os.path.basename(file))
 
 @app.route("/raw")
 def raw():
@@ -226,8 +305,71 @@ def convert_to_cast(path):
     tmp.close()
     return tmp.name
 
+def safe_color(color):
+    if color in ('#brightgreen', 'brightgreen'):
+        return 'lime'
+    if color.startswith("#") and len(color) not in (4, 7):
+        return "white"
+    return color
+
+def convert_cast_to_mp4_progress(cast_path, mp4_path, progress_path):
+    try:
+        print(f"[DEBUG] Starting MP4 conversion: {cast_path} → {mp4_path}")
+        with open(cast_path) as f:
+            lines = f.readlines()
+        header = json.loads(lines[0])
+        events = [json.loads(l) for l in lines[1:] if l.strip() and l.startswith("[")]
+        total = len(events)
+        width = header.get("width", 100)
+        height = header.get("height", 30)
+        duration = events[-1][0] if events else 0
+        screen = pyte.Screen(width, height)
+        stream = pyte.Stream(screen)
+        images = []
+        timestamps = []
+        font_size = 18
+        print(f"[DEBUG] Total events: {total}, duration: {duration:.2f}s")
+        for i, evt in enumerate(events):
+            try:
+                stream.feed(evt[2])
+                if evt[1] == "o":
+                    img = tty2img.tty2img(screen, fontSize=font_size, fgDefaultColor='lime', bgDefaultColor='black')
+                    img = img.convert("RGB")
+                    images.append(np.array(img))
+                    timestamps.append(evt[0])
+            except Exception as e:
+                print(f"[DEBUG] Frame {i} error: {e}")
+            if i % 10 == 0 or i == total - 1:
+                with open(progress_path, "w") as pf:
+                    pf.write(json.dumps({
+                        "progress": i / total if total else 1,
+                        "done": False,
+                        "text": f"Processing frame {i+1}/{total} (t={evt[0]:.1f}s)"
+                    }))
+        print(f"[DEBUG] Generated {len(images)} frames, timestamps: {timestamps[:10]}")
+        if len(timestamps) > 1:
+            durations = [s2 - s1 for s1, s2 in zip(timestamps, timestamps[1:])]
+            mean_duration = sum(durations) / len(durations)
+        else:
+            mean_duration = 0.5
+        with open(progress_path, "w") as pf:
+            pf.write(json.dumps({"progress": 1.0, "done": False, "text": "Encoding MP4..."}))
+        if len(images) > 0:
+            fps = 1 / mean_duration if mean_duration > 0 else 2
+            clip = mpy.ImageSequenceClip(images, fps=fps)
+            clip.write_videofile(mp4_path, codec="libx264", fps=fps, audio=False, logger=None)
+            print(f"[DEBUG] MP4 file written: {mp4_path}")
+            with open(progress_path, "w") as pf:
+                pf.write(json.dumps({"progress": 1.0, "done": True, "text": "Done"}))
+        else:
+            print("[DEBUG] No images generated, skipping video file creation!")
+            with open(progress_path, "w") as pf:
+                pf.write(json.dumps({"progress": 1.0, "done": True, "text": "No frames generated!"}))
+    except Exception as e:
+        print(f"[DEBUG] Exception: {e}")
+        with open(progress_path, "w") as pf:
+            pf.write(json.dumps({"progress": 0, "done": False, "text": f"Error: {e}"}))
+
 if __name__ == "__main__":
-    print("[+] Exegol Session Viewer running on http://127.0.0.1:5005")
-    with open(os.devnull, 'w') as devnull:
-        with contextlib.redirect_stdout(devnull), contextlib.redirect_stderr(devnull):
-            app.run(host="127.0.0.1", port=5005, debug=False, use_reloader=False)
+    print("[+] Exegol Replay running on http://127.0.0.1:5005")
+    app.run(debug=False, port=5005)
