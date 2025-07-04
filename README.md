@@ -31,6 +31,11 @@ cd Exegol-Session-Viewer
 ./install.sh
 ```
 
+## Screenshoots:
+![image](https://github.com/user-attachments/assets/6bb6c9af-14d0-49dd-9b9a-f393831b1536)
+![image](https://github.com/user-attachments/assets/fdc4dabd-0294-4cf6-825c-bcd7c55126d8)
+
+
 Then open your browser at: [http://localhost:5005](http://localhost:5005)
 ---
 
