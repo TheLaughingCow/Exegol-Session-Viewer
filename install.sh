@@ -3,7 +3,7 @@
 set -e
 
 TARGET="/opt/Exegol-Session-Viewer"
-SCRIPT="esw-launcher.py"
+SCRIPT="esv-launcher.py"
 ALIAS="alias esw='python3 $TARGET/$SCRIPT'"
 
 echo "[+] Moving project to $TARGET..."
@@ -29,4 +29,4 @@ fi
 echo
 echo "[✓] Installed successfully."
 echo "➡️  Restart your terminal or run: source $RC"
-echo "➡️  Then use: esw"
+echo "➡️  Then use: esv"
