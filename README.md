@@ -1,9 +1,9 @@
  
-# Exegol Session Viewer (ESW)
+# Exegol Session Viewer (ESV)
 
 ![image](https://github.com/user-attachments/assets/ff03d2c2-e9a9-40ad-bb45-44243ae4326a)
 
-**ESW** is a minimal interface to explore, filter, and replay session logs generated inside Exegol containers.
+**ESV** is a minimal interface to explore, filter, and replay session logs generated inside Exegol containers.
 
 It supports:
 - Filtering by container name and date/time
