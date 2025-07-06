@@ -3,8 +3,8 @@
 set -e
 
 TARGET="/opt/Exegol-Session-Viewer"
-SCRIPT="esv-launcher.py"
-ALIAS="alias esw='python3 $TARGET/$SCRIPT'"
+SCRIPT="esw-launcher.py"
+ALIAS="alias esv='python3 $TARGET/$SCRIPT'"
 
 echo "[+] Moving project to $TARGET..."
 
