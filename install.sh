@@ -9,9 +9,18 @@ ALIAS="alias esv='python3 $TARGET/$SCRIPT'"
 echo "[+] Moving project to $TARGET..."
 
 cd "$(dirname "$0")/.."
-rm -rf "$TARGET"
-mv Exegol-Session-Viewer "$TARGET"
-chmod -R 755 "$TARGET"
+
+if [ -w "/opt" ]; then
+    rm -rf "$TARGET"
+    mv Exegol-Session-Viewer "$TARGET"
+    chmod -R 755 "$TARGET"
+else
+    echo "[+] Insufficient permissions, using sudo for /opt only..."
+    sudo rm -rf "$TARGET"
+    sudo mv Exegol-Session-Viewer "$TARGET"
+    sudo chmod -R 755 "$TARGET"
+    sudo chown -R "$(whoami):$(whoami)" "$TARGET"
+fi
 
 if [ -n "$ZSH_VERSION" ] || [ "$(basename "$SHELL")" = "zsh" ]; then
     RC="$HOME/.zshrc"
