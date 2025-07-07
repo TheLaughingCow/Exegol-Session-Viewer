@@ -6,18 +6,12 @@ TARGET="/opt/Exegol-Session-Viewer"
 SCRIPT="esw-launcher.py"
 ALIAS="alias esv='python3 $TARGET/$SCRIPT'"
 
-if [ "$EUID" -ne 0 ]; then
-    echo "[!] This script must be run as root (use sudo)"
-    exit 1
-fi
-
 echo "[+] Moving project to $TARGET..."
 
 cd "$(dirname "$0")/.."
-sudo rm -rf "$TARGET"
-sudo mv Exegol-Session-Viewer "$TARGET"
-sudo chown -R root:root "$TARGET"
-sudo chmod -R 755 "$TARGET"
+rm -rf "$TARGET"
+mv Exegol-Session-Viewer "$TARGET"
+chmod -R 755 "$TARGET"
 
 if [ -n "$ZSH_VERSION" ] || [ "$(basename "$SHELL")" = "zsh" ]; then
     RC="$HOME/.zshrc"
