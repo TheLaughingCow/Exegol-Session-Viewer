@@ -22,40 +22,36 @@ else
     sudo chown -R "$(whoami):$(whoami)" "$TARGET"
 fi
 
-CURRENT_SHELL="$(basename "$0")"
-if [[ "$CURRENT_SHELL" == "bash" ]]; then
-    RC="$HOME/.bashrc"
-elif [[ "$CURRENT_SHELL" == "zsh" ]]; then
-    RC="$HOME/.zshrc"
+CURRENT_SHELL="$(ps -p $$ -o comm=)"
+
+if [[ "$CURRENT_SHELL" == "zsh" ]]; then
+    RC_FILE="$HOME/.zshrc"
+elif [[ "$CURRENT_SHELL" == "bash" ]]; then
+    RC_FILE="$HOME/.bashrc"
 else
-    RC="$HOME/.bashrc"
+    echo "[!] Shell inconnu ($CURRENT_SHELL), défaut sur ~/.bashrc"
+    RC_FILE="$HOME/.bashrc"
 fi
 
-if [ ! -f "$RC" ]; then
-    touch "$RC"
+if [ ! -f "$RC_FILE" ]; then
+    touch "$RC_FILE"
 fi
 
-if ! grep -Fxq "$ALIAS" "$RC"; then
-    echo "[+] Adding alias to $RC"
-    echo "$ALIAS" >> "$RC"
-    SHOULD_SOURCE=1
+if ! grep -Fxq "$ALIAS" "$RC_FILE"; then
+    echo "[+] Adding alias to $RC_FILE"
+    echo "$ALIAS" >> "$RC_FILE"
 else
-    echo "[*] Alias already exists in $RC"
-    SHOULD_SOURCE=1
+    echo "[*] Alias already exists in $RC_FILE"
 fi
 
-if [ "$SHOULD_SOURCE" = "1" ]; then
-    if [[ "$CURRENT_SHELL" == "bash" && "$RC" == *bashrc ]]; then
-        echo "[+] Sourcing $RC (Bash)..."
-        source "$RC"
-    elif [[ "$CURRENT_SHELL" == "zsh" && "$RC" == *zshrc ]]; then
-        echo "[+] Sourcing $RC (Zsh)..."
-        source "$RC"
-    else
-        echo "[!] Shell mismatch ($CURRENT_SHELL vs $RC) — skipping source"
-        echo "💡 Run manually: source $RC"
-    fi
-    echo "[*] Alias 'esv' is now available in your current shell (if sourced)."
+echo "[+] Sourcing $RC_FILE to load alias..."
+if [[ "$CURRENT_SHELL" == "zsh" && "$RC_FILE" == *zshrc ]]; then
+    source "$RC_FILE"
+elif [[ "$CURRENT_SHELL" == "bash" && "$RC_FILE" == *bashrc ]]; then
+    source "$RC_FILE"
+else
+    echo "[!] Shell mismatch : ne source pas $RC_FILE dans $CURRENT_SHELL"
+    echo "💡 Tu peux le faire manuellement : source $RC_FILE"
 fi
 
 echo
