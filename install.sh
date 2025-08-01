@@ -24,10 +24,13 @@ fi
 
 if [ -n "$ZSH_VERSION" ] || [ "$(basename "$SHELL")" = "zsh" ]; then
     RC="$HOME/.zshrc"
+    CURRENT_SHELL="zsh"
 elif [ -n "$BASH_VERSION" ] || [ "$(basename "$SHELL")" = "bash" ]; then
     RC="$HOME/.bashrc"
+    CURRENT_SHELL="bash"
 else
     RC="$HOME/.bashrc"
+    CURRENT_SHELL="bash"
 fi
 
 if [ ! -f "$RC" ]; then
@@ -37,11 +40,25 @@ fi
 if ! grep -Fxq "$ALIAS" "$RC"; then
     echo "[+] Adding alias to $RC"
     echo "$ALIAS" >> "$RC"
+    SHOULD_SOURCE=1
 else
     echo "[*] Alias already exists in $RC"
+    SHOULD_SOURCE=1
+fi
+
+if [ "$SHOULD_SOURCE" = "1" ]; then
+    if [ "$CURRENT_SHELL" = "zsh" ] && [[ "$SHELL" == *zsh ]]; then
+        echo "[+] Sourcing $RC (Zsh)..."
+        source "$RC"
+    elif [ "$CURRENT_SHELL" = "bash" ] && [[ "$SHELL" == *bash ]]; then
+        echo "[+] Sourcing $RC (Bash)..."
+        source "$RC"
+    else
+        echo "[!] Shell mismatch — please manually run: source $RC"
+    fi
+    echo "[*] Alias 'esv' is now available in your current shell (if sourced)."
 fi
 
 echo
 echo "[✓] Installed successfully."
-echo "➡️  Restart your terminal or run: source $RC"
-echo "➡️  Then use: esv"
+echo "➡️  You can now use: esv"
