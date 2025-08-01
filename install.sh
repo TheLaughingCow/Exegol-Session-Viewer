@@ -22,15 +22,14 @@ else
     sudo chown -R "$(whoami):$(whoami)" "$TARGET"
 fi
 
-if [ -n "$ZSH_VERSION" ] || [ "$(basename "$SHELL")" = "zsh" ]; then
+CURRENT_SHELL="$(ps -p $$ -o comm=)"
+
+if [[ "$CURRENT_SHELL" == "zsh" ]]; then
     RC="$HOME/.zshrc"
-    CURRENT_SHELL="zsh"
-elif [ -n "$BASH_VERSION" ] || [ "$(basename "$SHELL")" = "bash" ]; then
+elif [[ "$CURRENT_SHELL" == "bash" ]]; then
     RC="$HOME/.bashrc"
-    CURRENT_SHELL="bash"
 else
     RC="$HOME/.bashrc"
-    CURRENT_SHELL="bash"
 fi
 
 if [ ! -f "$RC" ]; then
@@ -47,14 +46,15 @@ else
 fi
 
 if [ "$SHOULD_SOURCE" = "1" ]; then
-    if [ "$CURRENT_SHELL" = "zsh" ] && [[ "$SHELL" == *zsh ]]; then
+    if [[ "$CURRENT_SHELL" == "zsh" ]] && [[ "$RC" == *zshrc ]]; then
         echo "[+] Sourcing $RC (Zsh)..."
         source "$RC"
-    elif [ "$CURRENT_SHELL" = "bash" ] && [[ "$SHELL" == *bash ]]; then
+    elif [[ "$CURRENT_SHELL" == "bash" ]] && [[ "$RC" == *bashrc ]]; then
         echo "[+] Sourcing $RC (Bash)..."
         source "$RC"
     else
-        echo "[!] Shell mismatch — please manually run: source $RC"
+        echo "[!] Current shell is $CURRENT_SHELL but config is $RC — skipping sourcing."
+        echo "💡 Run manually: source $RC"
     fi
     echo "[*] Alias 'esv' is now available in your current shell (if sourced)."
 fi
