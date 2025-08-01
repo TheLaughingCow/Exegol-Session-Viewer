@@ -33,10 +33,9 @@ for RC in "$HOME/.bashrc" "$HOME/.zshrc"; do
     else
         echo "[*] Alias already exists in $RC"
     fi
-
-    source "$RC" || true
 done
 
 echo
 echo "[✓] Installed successfully."
-echo "➡️  You can now use: esv"
+echo "➡️  To use: esv"
+echo "➡️  Run: source ~/.bashrc or source ~/.zshrc depending on your shell"
