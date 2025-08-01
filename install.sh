@@ -22,7 +22,8 @@ else
     sudo chown -R "$(whoami):$(whoami)" "$TARGET"
 fi
 
-CURRENT_SHELL="$(ps -p $$ -o comm=)"
+# Détection fiable du shell courant
+CURRENT_SHELL="$(ps -p $$ -o comm= | tail -n 1)"
 
 if [[ "$CURRENT_SHELL" == "zsh" ]]; then
     RC_FILE="$HOME/.zshrc"
@@ -44,6 +45,7 @@ else
     echo "[*] Alias already exists in $RC_FILE"
 fi
 
+# Sourcing automatique uniquement si cohérent
 echo "[+] Sourcing $RC_FILE to load alias..."
 if [[ "$CURRENT_SHELL" == "zsh" && "$RC_FILE" == *zshrc ]]; then
     source "$RC_FILE"
