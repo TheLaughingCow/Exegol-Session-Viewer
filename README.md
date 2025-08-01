@@ -26,11 +26,11 @@ It supports:
 ## Installation
 Oneliner :
 ```bash
-git clone https://github.com/Frozenka/Exegol-Session-Viewer.git && cd Exegol-Session-Viewer && bash install.sh
+git clone https://github.com/TheLaughingCow/Exegol-Session-Viewer.git && cd Exegol-Session-Viewer && bash install.sh
 ```
 Git :
 ```bash
-git clone https://github.com/Frozenka/Exegol-Session-Viewer.git
+git clone https://github.com/TheLaughingCow/Exegol-Session-Viewer.git
 cd Exegol-Session-Viewer
 ./install.sh
 ```
