@@ -22,15 +22,15 @@ else
     sudo chown -R "$(whoami):$(whoami)" "$TARGET"
 fi
 
-# Détection fiable du shell courant
-CURRENT_SHELL="$(ps -p $$ -o comm= | tail -n 1)"
+USER_SHELL="$(basename "$SHELL")"
+echo "[+] Shell détecté via \$SHELL : $USER_SHELL"
 
-if [[ "$CURRENT_SHELL" == "zsh" ]]; then
+if [[ "$USER_SHELL" == "zsh" ]]; then
     RC_FILE="$HOME/.zshrc"
-elif [[ "$CURRENT_SHELL" == "bash" ]]; then
+elif [[ "$USER_SHELL" == "bash" ]]; then
     RC_FILE="$HOME/.bashrc"
 else
-    echo "[!] Shell inconnu ($CURRENT_SHELL), défaut sur ~/.bashrc"
+    echo "[!] Shell inconnu ($USER_SHELL), défaut sur ~/.bashrc"
     RC_FILE="$HOME/.bashrc"
 fi
 
@@ -45,14 +45,15 @@ else
     echo "[*] Alias already exists in $RC_FILE"
 fi
 
-# Sourcing automatique uniquement si cohérent
 echo "[+] Sourcing $RC_FILE to load alias..."
-if [[ "$CURRENT_SHELL" == "zsh" && "$RC_FILE" == *zshrc ]]; then
+if [[ "$USER_SHELL" == "zsh" && "$RC_FILE" == *zshrc ]]; then
     source "$RC_FILE"
-elif [[ "$CURRENT_SHELL" == "bash" && "$RC_FILE" == *bashrc ]]; then
+    echo "[*] Alias 'esv' is now available in your current shell."
+elif [[ "$USER_SHELL" == "bash" && "$RC_FILE" == *bashrc ]]; then
     source "$RC_FILE"
+    echo "[*] Alias 'esv' is now available in your current shell."
 else
-    echo "[!] Shell mismatch : ne source pas $RC_FILE dans $CURRENT_SHELL"
+    echo "[!] Shell mismatch : ne source pas $RC_FILE dans $USER_SHELL"
     echo "💡 Tu peux le faire manuellement : source $RC_FILE"
 fi
 
